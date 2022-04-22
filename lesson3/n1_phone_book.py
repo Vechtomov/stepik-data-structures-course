@@ -12,8 +12,6 @@ def solve(commands):
                 del book[c[1]]
 
 def main():
-    def read_list(s):
-        return list(map(int, (s.split())))
     reader = (s for s in sys.stdin)
     n = int(next(reader))
     commands = [next(reader).split() for _ in range(n)]
