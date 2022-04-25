@@ -4,7 +4,7 @@ class Node:
     def __init__(self, key, left = None, right = None):
         self.key = key
         self.left = left
-        self.rigth = right
+        self.right = right
 
 def in_order(node: Node):
     if node is None:
@@ -12,14 +12,39 @@ def in_order(node: Node):
     for k in in_order(node.left):
         yield k
     yield node.key
-    for k in in_order(node.rigth):
+    for k in in_order(node.right):
         yield k
 
+def pre_order(node: Node):
+    if node is None:
+        return
+    yield node.key
+    for k in in_order(node.left):
+        yield k
+    for k in in_order(node.right):
+        yield k
+        
+def post_order(node: Node):
+    if node is None:
+        return
+    for k in in_order(node.left):
+        yield k
+    for k in in_order(node.right):
+        yield k
+    yield node.key
+
 def solve(commands):
-    left = Node(1)
-    right = Node(3)
-    root = Node(2, left, right)
+    nodes = [Node(0) for _ in range(len(commands))]
+    for i, (k, l, r) in enumerate(commands):
+        nodes[i].key = k
+        if l != -1:
+            nodes[i].left = nodes[l]
+        if r != -1:
+            nodes[i].right = nodes[r]
+    root = nodes[0]
     print(" ".join(map(str, in_order(root))))
+    print(" ".join(map(str, pre_order(root))))
+    print(" ".join(map(str, post_order(root))))
 
 def main():
     reader = (s for s in sys.stdin)
