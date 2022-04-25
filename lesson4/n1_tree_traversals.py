@@ -19,17 +19,17 @@ def pre_order(node: Node):
     if node is None:
         return
     yield node.key
-    for k in in_order(node.left):
+    for k in pre_order(node.left):
         yield k
-    for k in in_order(node.right):
+    for k in pre_order(node.right):
         yield k
         
 def post_order(node: Node):
     if node is None:
         return
-    for k in in_order(node.left):
+    for k in post_order(node.left):
         yield k
-    for k in in_order(node.right):
+    for k in post_order(node.right):
         yield k
     yield node.key
 
