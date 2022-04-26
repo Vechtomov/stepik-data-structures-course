@@ -8,6 +8,21 @@ class Node:
         self.right = right
 
 
+def check_invariant_no_recursion(root: Node):
+    st = [(root, None, None)]
+    while len(st) > 0:
+        node, min_val, max_val = st.pop()
+        if node is None:
+            continue
+        if max_val is not None and node.key >= max_val:
+            return False
+        if min_val is not None and node.key < min_val:
+            return False
+        st.append((node.left, min_val, node.key))
+        st.append((node.right, node.key, max_val))
+    return True
+
+
 def check_invariant(node: Node, min_val, max_val):
     if node is None:
         return True
@@ -34,7 +49,7 @@ def solve(commands):
         is_correct = True
     else:
         root = build_tree(commands)
-        is_correct = check_invariant(root, None, None)
+        is_correct = check_invariant_no_recursion(root)
     print('CORRECT' if is_correct else 'INCORRECT')
 
 
