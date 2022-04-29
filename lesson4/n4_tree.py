@@ -1,5 +1,6 @@
 import sys
 from __future__ import annotations
+from typing import Tuple
 
 
 class Node:
@@ -18,47 +19,50 @@ class Node:
         return self.weights[Node.L]
 
     @property
-    def lh(self, v):
-        self.weights[Node.L] = v
+    def lh(self, value):
+        self.weights[Node.L] = value
 
     @property
     def rh(self) -> int:
         return self.weights[Node.R]
 
     @property
-    def rh(self, v):
-        self.weights[Node.R] = v
+    def rh(self, value):
+        self.weights[Node.R] = value
 
     @property
     def l(self) -> Node:
-        return self.children[Node.L]
+        return self[Node.L]
 
     @property
     def l(self, node: Node):
-        self.set_child(Node.L, node)
+        self[Node.L] = node
 
     @property
     def r(self) -> Node:
-        return self.children[Node.R]
+        return self[Node.R]
 
     @property
     def r(self, node: Node):
-        self.set_child(Node.R, node)
+        self[Node.R] = node
 
-    def set_child(self, child_type: str, node: Node):
+    def get_child_type(self, node: Node) -> str:
+        return Node.L if node.k < self.k else Node.R
+
+    def __getitem__(self, child_type: str) -> Node:
+        return self.children[child_type]
+
+    def __setitem__(self, child_type: str, node: Node):
         self.children[child_type] = node
         if node is not None:
             self.weights[child_type] = max(node.lh, node.rh) + 1
             # reset parent
             if node.p is not None:
                 child_type = node.p.get_child_type(node)
-                node.p.set_child(child_type, None)
+                node.p[child_type] = None
             node.p = self
         else:
             self.weights[child_type] = 0
-
-    def get_child_type(self, node: Node) -> str:
-        return Node.L if node.k < self.k else Node.R
 
 
 def small_rotation(is_left: bool, alpha: Node, beta: Node, b: Node):
@@ -87,20 +91,24 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node, gamma: Node, b: Node, c
     return gamma
 
 
-def repair_invariant(node: Node):
+def repair_invariant(node: Node) -> Tuple[Node, bool]:
+    if node is None:
+        return node, False
     if abs(node.lh - node.rh) <= 1:
-        return node
+        return node, False
 
     alpha: Node = node
     beta: Node = None
     gamma: Node = None
+    b: Node = None
+    c: Node = None
     is_left = alpha.lh > alpha.rh
-    is_small = False
+    is_small_rotation = False
     if is_left:
         beta = alpha.l
         if beta.rh <= beta.lh:
             b = beta.r
-            is_small = True
+            is_small_rotation = True
         else:
             gamma = beta.r
             b = gamma.r
@@ -109,45 +117,61 @@ def repair_invariant(node: Node):
         beta = alpha.r
         if beta.lh <= beta.rh:
             b = beta.l
-            is_small = True
+            is_small_rotation = True
         else:
             gamma = beta.l
             b = gamma.l
             c = gamma.r
 
-    if is_small:
-        return small_rotation(is_left, alpha, beta, b)
+    if is_small_rotation:
+        root = small_rotation(is_left, alpha, beta, b)
     else:
-        return big_rotation(is_left, alpha, beta, gamma, b, c)
+        root = big_rotation(is_left, alpha, beta, gamma, b, c)
+
+    return root, True
 
 
 class Tree:
     def __init__(self) -> None:
         self.root = None
 
-    def add(self, k):
+    def add(self, k: int):
         if self.root is None:
             self.root = Node(k)
         else:
             self._add(self.root, Node(k))
 
     def _add(self, node: Node, new_node: Node):
-        if node.k > new_node.k:
-            if node.l is None:
-                node.l = new_node
-                new_node.p = node
-            else:
-                self._add(node.l, new_node)
+        child_type = node.get_child_type(new_node)
+        if node[child_type] is None:
+            node[child_type] = new_node
+            self._repair(new_node)
         else:
-            if node.r is None:
-                node.r = new_node
-                new_node.p = node
-            else:
-                self._add(node.r, new_node)
+            self._add(node.l, new_node)
         return new_node
 
-    def remove(self, k):
+    def remove(self, k: int):
+        if self.root is None:
+            return
+        self._remove(self.root, k)
+
+    def _remove(self, node: Node, k: int):
+        if node.k == k:
+            self._remove_node(node)
+        else:
+            child_type = node.get_child_type(Node(k))
+            if node[child_type] is None:
+                return
+            else:
+                self._remove(node[child_type], k)
+
+    def _remove_node(self, node: Node):
         pass
+
+    def _repair(self, node: Node):
+        node, changed = repair_invariant(node)
+        if changed:
+            self._repair(node.p)
 
 
 def build_tree(commands):
@@ -164,6 +188,7 @@ def build_tree(commands):
 def solve(commands):
     root = build_tree(commands)
     print(root.lh, root.rh)
+
 
 def main():
     reader = (s for s in sys.stdin)
