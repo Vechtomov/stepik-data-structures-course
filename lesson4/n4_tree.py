@@ -1,49 +1,125 @@
 import sys
 from __future__ import annotations
 
+
 class Node:
+    L: str = 'l'
+    R: str = 'r'
+
     def __init__(self, k, l=None, r=None, p=None):
         self.k: int = k
-        self.l: Node = l
-        self.r: Node = r
         self.p: Node = p
-        self.lh: int = 0
-        self.rh: int = 0
-        self.ls: int = 0
-        self.rs: int = 0
+        self.children = {Node.L: l, Node.R: r}
+        # todo: calc heights if l or r is not None
+        self.weights = {Node.L: 0, Node.R: 0}
 
-def calc_height_all(node: Node):
-    cur = node
-    while cur.p is not None:
-        calc_height_parent(node)
-        cur = cur.p
+    @property
+    def lh(self) -> int:
+        return self.weights[Node.L]
 
-def calc_height_parent(node: Node):
-    if node.p is None:
-        return
-    if node.k < node.p.k:
-        node.p.lh = max(node.lh, node.rh) + 1
+    @property
+    def lh(self, v):
+        self.weights[Node.L] = v
+
+    @property
+    def rh(self) -> int:
+        return self.weights[Node.R]
+
+    @property
+    def rh(self, v):
+        self.weights[Node.R] = v
+
+    @property
+    def l(self) -> Node:
+        return self.children[Node.L]
+
+    @property
+    def l(self, node: Node):
+        self.set_child(Node.L, node)
+
+    @property
+    def r(self) -> Node:
+        return self.children[Node.R]
+
+    @property
+    def r(self, node: Node):
+        self.set_child(Node.R, node)
+
+    def set_child(self, child_type: str, node: Node):
+        self.children[child_type] = node
+        if node is not None:
+            self.weights[child_type] = max(node.lh, node.rh) + 1
+            # reset parent
+            if node.p is not None:
+                child_type = node.p.get_child_type(node)
+                node.p.set_child(child_type, None)
+            node.p = self
+        else:
+            self.weights[child_type] = 0
+
+    def get_child_type(self, node: Node) -> str:
+        return Node.L if node.k < self.k else Node.R
+
+
+def small_rotation(is_left: bool, alpha: Node, beta: Node, b: Node):
+    if is_left:
+        alpha.l = b
+        beta.r = alpha
     else:
-        node.p.rh = max(node.lh, node.rh) + 1
+        alpha.r = b
+        beta.l = alpha
+    beta.p = None
+    return beta
+
+
+def big_rotation(is_left: bool, alpha: Node, beta: Node, gamma: Node, b: Node, c):
+    if is_left:
+        alpha.r = b
+        beta.l = c
+        gamma.l = alpha
+        gamma.r = beta
+    else:
+        alpha.r = b
+        beta.l = c
+        gamma.l = alpha
+        gamma.r = beta
+    gamma.p = None
+    return gamma
+
 
 def repair_invariant(node: Node):
     if abs(node.lh - node.rh) <= 1:
         return node
-    b = node
-    a = b.l
-    c = b.r
-    root = b
-    if b.lh > b.rh:
-        if a.lh > a.rh:
-            root = a
-            b.l = a.r
-            a.r = b
+
+    alpha: Node = node
+    beta: Node = None
+    gamma: Node = None
+    is_left = alpha.lh > alpha.rh
+    is_small = False
+    if is_left:
+        beta = alpha.l
+        if beta.rh <= beta.lh:
+            b = beta.r
+            is_small = True
         else:
-            pass
+            gamma = beta.r
+            b = gamma.r
+            c = gamma.l
     else:
-        pass
-    return root
-    
+        beta = alpha.r
+        if beta.lh <= beta.rh:
+            b = beta.l
+            is_small = True
+        else:
+            gamma = beta.l
+            b = gamma.l
+            c = gamma.r
+
+    if is_small:
+        return small_rotation(is_left, alpha, beta, b)
+    else:
+        return big_rotation(is_left, alpha, beta, gamma, b, c)
+
 
 class Tree:
     def __init__(self) -> None:
@@ -60,44 +136,18 @@ class Tree:
             if node.l is None:
                 node.l = new_node
                 new_node.p = node
-                calc_height_parent(new_node)
             else:
                 self._add(node.l, new_node)
         else:
             if node.r is None:
                 node.r = new_node
                 new_node.p = node
-                calc_height_parent(new_node)
             else:
                 self._add(node.r, new_node)
         return new_node
 
-    
-
-
-def check_invariant_no_recursion(root: Node):
-    st = [(root, None, None)]
-    while len(st) > 0:
-        node, min_val, max_val = st.pop()
-        if node is None:
-            continue
-        if max_val is not None and node.k >= max_val:
-            return False
-        if min_val is not None and node.k < min_val:
-            return False
-        st.append((node.l, min_val, node.k))
-        st.append((node.r, node.k, max_val))
-    return True
-
-
-def check_invariant(node: Node, min_val, max_val):
-    if node is None:
-        return True
-    if max_val is not None and node.k >= max_val:
-        return False
-    if min_val is not None and node.k < min_val:
-        return False
-    return check_invariant(node.l, min_val, node.k) and check_invariant(node.r, node.k, max_val)
+    def remove(self, k):
+        pass
 
 
 def build_tree(commands):
@@ -112,13 +162,8 @@ def build_tree(commands):
 
 
 def solve(commands):
-    if len(commands) == 0:
-        is_correct = True
-    else:
-        root = build_tree(commands)
-        is_correct = check_invariant_no_recursion(root)
-    print('CORRECT' if is_correct else 'INCORRECT')
-
+    root = build_tree(commands)
+    print(root.lh, root.rh)
 
 def main():
     reader = (s for s in sys.stdin)
