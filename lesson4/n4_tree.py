@@ -64,6 +64,9 @@ class Node:
         else:
             self.weights[child_type] = 0
 
+    def __delitem__(self, child_type):
+        self[child_type] = None
+
 
 def small_rotation(is_left: bool, alpha: Node, beta: Node, b: Node):
     if is_left:
@@ -160,13 +163,56 @@ class Tree:
             self._remove_node(node)
         else:
             child_type = node.get_child_type(Node(k))
-            if node[child_type] is None:
-                return
-            else:
-                self._remove(node[child_type], k)
+            child_node = node[child_type]
+            if child_node is not None:
+                self._remove(child_node, k)
 
     def _remove_node(self, node: Node):
-        pass
+        existed_child_types = [
+            t for t, n in node.children.items() if n is not None]
+        is_root = node.p is None
+        node_type = None if is_root else node.p.get_child_type(node)
+        if len(existed_child_types) == 0:
+            self._remove_node_no_children(node, is_root, node_type)
+        elif len(existed_child_types) == 1:
+            self._remove_node_one_child(
+                node, existed_child_types[0], is_root, node_type)
+        else:
+            self._remove_node_two_children(node, is_root, node_type)
+
+    def _remove_node_no_children(self, node: Node, is_root: bool, node_type: str):
+        if is_root:
+            self.root = None
+        else:
+            del node.p[node_type]
+            self._repair(node.p)
+
+    def _remove_node_one_child(self, node: Node, child_type: str, is_root: bool, node_type: str):
+        child = node[child_type]
+        if is_root:
+            self.root = child
+        else:
+            node.p[node_type] = child
+        self._repair(child)
+
+    def _remove_node_two_children(self, node: Node, is_root: bool, node_type: str):
+        max_r_child: Node = node.l
+        while max_r_child.r is not None:
+            max_r_child = max_r_child.r
+
+        if max_r_child == node.l:
+            max_r_child.r = node.r
+            repair_node = max_r_child
+        else:
+            repair_node = max_r_child.p
+            max_r_child.p.r = None
+            max_r_child.l = node.l
+            max_r_child.r = node.r
+        if is_root:
+            self.root = max_r_child
+        else:
+            node.p[node_type] = max_r_child
+        self._repair(repair_node)
 
     def _repair(self, node: Node):
         node, changed = repair_invariant(node)
