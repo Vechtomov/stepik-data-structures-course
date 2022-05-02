@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ctypes import Union
 import sys
 from typing import Tuple
 
@@ -7,7 +8,7 @@ class Node:
     L: str = 'l'
     R: str = 'r'
 
-    def __init__(self, k):
+    def __init__(self, k: int):
         self.k: int = k
         self._p: Node = None
         self.children = {Node.L: None, Node.R: None}
@@ -175,15 +176,71 @@ def repair_invariant(node: Node) -> Tuple[Node, bool]:
     return root, True
 
 
-class Tree:
-    def __init__(self) -> None:
-        self.root = None
-
-    def add(self, k: int):
-        if self.root is None:
-            self.root = Node(k)
+def merge_trees(t1: Tree, t2: Tree) -> Tree:
+    assert t1 is not None and t2 is not None
+    if abs(t1.h - t2.h) <= 1:
+        if t1.h > t2.h:
+            t = t1
+            root = t.max()
         else:
-            self._add(self.root, Node(k))
+            t = t2
+            root = t.min()
+        t.remove(root.k)
+        root.l = t1.root
+        root.r = t2.root
+        t = Tree(root)
+        return t
+    elif t1.h > t2.h:
+        r = t1.root.r
+        t1.root.r = None
+        t = merge_trees(Tree(r), t2)
+        t1.add(t.root)
+        return t1
+    else:
+        l = t2.root.l
+        t2.root.l = None
+        t = merge_trees(t1, Tree(l))
+        t2.add(t.root)
+        return t2
+
+
+def split_tree(t: Tree, k: int) -> Tuple[Tree, Tree]:
+    if t.root is None:
+        return None, None
+    root = t.root
+    l_node, r_node = root.l, root.r
+    root.l = None
+    root.r = None
+    l_tree, r_tree = Tree(l_node), Tree(r_node)
+    if k < root.k:
+        r_tree.add(root)
+        l_tree, r = split_tree(l_tree, k)
+        if r is not None:
+            r_tree = merge_trees(r, r_tree)
+    else:
+        l_tree.add(root)
+        l, r_tree = split_tree(r_tree, k)
+        if l is not None:
+            l_tree = merge_trees(l_tree, l)
+    return l_tree, r_tree
+
+
+class Tree:
+    def __init__(self, root: Node = None) -> None:
+        self.root = root
+
+    @property
+    def h(self) -> int:
+        if self.root is None:
+            return 0
+        return max(self.root.lh, self.root.rh) + 1
+
+    def add(self, v: Union[int, Node]):
+        node = v if isinstance(v, Node) else Node(v)
+        if self.root is None:
+            self.root = node
+        else:
+            self._add(self.root, node)
 
     def _add(self, node: Node, new_node: Node):
         child_type = node.get_child_type(new_node)
@@ -196,7 +253,7 @@ class Tree:
 
     def find(self, k: int) -> Node:
         return self._find(self.root, k)
-    
+
     def _find(self, node: Node, k: int) -> Node:
         if node is None:
             return False
@@ -204,15 +261,32 @@ class Tree:
             return True
         return self._find(node.l if k < node.k else node.r, k)
 
+    def max(self) -> Node:
+        assert self.root is not None
+        return self._find_max(self.root)
+
+    def min(self) -> Node:
+        assert self.root is not None
+        return self._find_min(self.root)
+
     def _find_max(self, node: Node):
+        assert node is not None
         curr = node
         while curr.r is not None:
             curr = curr.r
         return curr
+        
+    def _find_min(self, node: Node):
+        assert node is not None
+        curr = node
+        while curr.l is not None:
+            curr = curr.l
+        return curr
 
-    def remove(self, k: int):
-        if self.root is None:
+    def remove(self, v: Union[int, Node]):
+        if self.root is None or v is None:
             return
+        k = v.k if isinstance(v, Node) else v
         self._remove(self.root, k)
 
     def _remove(self, node: Node, k: int):
@@ -247,10 +321,10 @@ class Tree:
 
     def _remove_node_one_child(self, node: Node, child_type: str, is_root: bool, node_type: str):
         child = node[child_type]
+        child.p = None
         if is_root:
             self.root = child
         else:
-            child.p = None
             node.p[node_type] = child
         self._repair(child)
 
