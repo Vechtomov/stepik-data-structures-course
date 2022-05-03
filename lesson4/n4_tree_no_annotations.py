@@ -1,4 +1,3 @@
-from __future__ import annotations
 import sys
 from typing import Tuple, Union
 
@@ -9,7 +8,7 @@ class Node:
 
     def __init__(self, k: int):
         self.k: int = k
-        self._p: Node = None
+        self._p = None
         self.children = {Node.L: None, Node.R: None}
         self.heights = {Node.L: 0, Node.R: 0}
         self.sums = {Node.L: 0, Node.R: 0}
@@ -31,43 +30,43 @@ class Node:
         return self.sums[Node.R]
 
     @property
-    def l(self) -> Node:
+    def l(self):
         return self[Node.L]
 
     @l.setter
-    def l(self, node: Node):
+    def l(self, node):
         self[Node.L] = node
 
     @property
-    def r(self) -> Node:
+    def r(self):
         return self[Node.R]
 
     @r.setter
-    def r(self, node: Node):
+    def r(self, node):
         self[Node.R] = node
 
     @property
-    def p(self) -> Node:
+    def p(self):
         return self._p
 
     @p.setter
-    def p(self, parent: Node):
+    def p(self, parent):
         current_parent = self.p
         if current_parent is not None:
             current_parent.remove_child(self)
         if parent is not None:
             parent.set_child(self)
 
-    def get_child_type(self, node: Node) -> str:
+    def get_child_type(self, node) -> str:
         assert node is not None
         return Node.L if node.k < self.k else Node.R
 
-    def set_child(self, child: Node):
+    def set_child(self, child):
         assert child is not None
         child_type = self.get_child_type(child)
         self[child_type] = child
 
-    def remove_child(self, child: Node) -> bool:
+    def remove_child(self, child) -> bool:
         if child is None:
             return
         child_type = self.get_child_type(child)
@@ -77,10 +76,10 @@ class Node:
         else:
             return False
 
-    def __getitem__(self, child_type: str) -> Node:
+    def __getitem__(self, child_type: str):
         return self.children[child_type]
 
-    def __setitem__(self, child_type: str, child: Node):
+    def __setitem__(self, child_type: str, child):
         assert child is None or child.p is None
         current_child = self[child_type]
         if current_child is not None:
@@ -175,7 +174,7 @@ def repair_invariant(node: Node) -> Tuple[Node, bool]:
     return root, True
 
 
-def merge_trees(t1: Tree, t2: Tree) -> Tree:
+def merge_trees(t1, t2):
     assert t1 is not None and t2 is not None
     if t1.root is None:
         return t2
@@ -207,7 +206,7 @@ def merge_trees(t1: Tree, t2: Tree) -> Tree:
         return t2
 
 
-def split_tree(t: Tree, k: int) -> Tuple[Tree, Tree]:
+def split_tree(t, k: int):
     if t.root is None:
         return Tree(), Tree()
     root = t.root
