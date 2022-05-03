@@ -346,6 +346,9 @@ class Tree:
             max_left_child.r = r
         else:
             repair_node = max_left_child.p
+            ml = max_left_child.l
+            max_left_child.remove_child(ml)
+            repair_node.r = ml
             max_left_child.p = None
             max_left_child.l = l
             max_left_child.r = r

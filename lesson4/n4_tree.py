@@ -347,6 +347,9 @@ class Tree:
             max_left_child.r = r
         else:
             repair_node = max_left_child.p
+            ml = max_left_child.l
+            max_left_child.remove_child(ml)
+            repair_node.r = ml
             max_left_child.p = None
             max_left_child.l = l
             max_left_child.r = r
@@ -367,9 +370,10 @@ class Tree:
 def solve(commands):
     t = Tree()
     s = 0
+    p = 1_000_000_001
 
     def f(x):
-        return (x + s) % 1_000_000_001
+        return (x % p + s) % p
 
     for comm in commands:
         c, args = comm[0], list(map(int, comm[1:]))
@@ -377,10 +381,11 @@ def solve(commands):
             l, r = map(f, args)
             left_t, right_t = split_tree(t, l-1)
             center_t, right_t = split_tree(right_t, r)
-            s = center_t.sum
+            res = center_t.sum
+            s = res % p
             left_t = merge_trees(left_t, center_t)
             t = merge_trees(left_t, right_t)
-            yield str(s)
+            yield str(res)
         else:
             i = f(args[0])
             if c == '+':
