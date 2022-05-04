@@ -26,15 +26,14 @@ def check(expected, actual, predict):
     for i, c in enumerate(predict):
         a = result[i]
         s = actual[i]
+        if a == 'G' and c != a:
+            r = False
+            break
         if c == 'G':
             if a != 'G':
                 r = False
                 break
-        elif c == 'W':
-            if s not in d and a != 'W':
-                r = False
-                break
-        else: # c = 'Y'
+        elif c == 'Y':
             if s not in d or s not in y or y[s] < 1:
                 r = False
                 break
@@ -44,19 +43,14 @@ def check(expected, actual, predict):
 
 def game():
     expected = input()
-    # print(expected)
     n = int(input())
-    # print(n)
     tries = [[None, None] for i in range(n)]
     result = ''
     for i in range(n):
         tries[i][0] = input()
-    # print(tries)
     for i in range(n):
         tries[i][1] = input()
-        # print(tries)
         r = check(expected, tries[i][0], tries[i][1])
-        # print(r)
         result += 'Y' if r[0] == 0 and r[1] else 'N'
     return result
 
