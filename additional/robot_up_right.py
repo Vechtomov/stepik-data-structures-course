@@ -1,5 +1,9 @@
 import numpy as np
-from functools import cache
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache as cache
 
 def solution_bottom_up(n, m):
     t = np.zeros((m, n), dtype=np.int32)
@@ -12,7 +16,6 @@ def solution_bottom_up(n, m):
 
 @cache
 def solution_top_down(n, m):
-    print(n, m)
     if n < 0 or m < 0:
         return 0
     if n == 1 and m == 1:
