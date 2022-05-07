@@ -11,24 +11,11 @@ class Node:
         self.k: int = k
         self._p: Node = None
         self.children = {Node.L: None, Node.R: None}
-        self.heights = {Node.L: 0, Node.R: 0}
-        self.sums = {Node.L: 0, Node.R: 0}
-
-    @property
-    def lh(self) -> int:
-        return self.heights[Node.L]
-
-    @property
-    def rh(self) -> int:
-        return self.heights[Node.R]
-
-    @property
-    def ls(self) -> int:
-        return self.sums[Node.L]
-
-    @property
-    def rs(self) -> int:
-        return self.sums[Node.R]
+        self.lh = 0
+        self.rh = 0
+        self.ls = 0
+        self.rs = 0
+        self._height_changed = False
 
     @property
     def l(self) -> Node:
@@ -86,7 +73,10 @@ class Node:
         if current_child is not None:
             current_child._p = None
         self.children[child_type] = child
-        self.recalc_stats(child_type)
+        self._recalc_child_stats(child_type)
+        if self._height_changed:
+            self._p_height_changed()
+            self._height_changed = False
         if child is not None:
             child._p = self
 
@@ -101,14 +91,34 @@ class Node:
         p_str = self.p.k if self.p else 'null'
         return f"{self.k}({p_str})"
 
-    def recalc_stats(self, child_type=None):
-        child_types = [Node.L, Node.R] if child_type is None else [child_type]
-        for t in child_types:
-            child = self[t]
-            self.heights[t] = 0 if child is None else \
-                max(child.lh, child.rh) + 1
-            self.sums[t] = 0 if child is None else \
-                child.ls + child.rs + child.k
+    def recalc_stats(self):
+        self._height_changed = False
+        for t in [Node.L, Node.R]:
+            self._recalc_child_stats(t)
+        if self._height_changed:
+            self._p_height_changed()
+            self._height_changed = False
+
+    def _p_height_changed(self):
+        if self.p is not None:
+            self.p._height_changed = True
+
+    def _recalc_child_stats(self, t: str):
+        child = self[t]
+        new_height = 0 if child is None else \
+            max(child.lh, child.rh) + 1
+        new_sum = 0 if child is None else \
+            child.ls + child.rs + child.k
+        if t == Node.L:
+            last_height = self.lh
+            self.lh = new_height
+            self.ls = new_sum
+        else:
+            last_height = self.rh
+            self.rh = new_height
+            self.rs = new_sum
+        if last_height != new_height:
+            self._height_changed = True
 
 
 def small_rotation(is_left: bool, alpha: Node, beta: Node):
@@ -154,7 +164,8 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node):
 def repair_invariant(node: Node) -> Tuple[Node, bool]:
     if node is None:
         return node, False
-    node.recalc_stats()
+    if node._height_changed:
+        node.recalc_stats()
     if abs(node.lh - node.rh) <= 1:
         return node, False
 
