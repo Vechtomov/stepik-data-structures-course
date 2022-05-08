@@ -10,16 +10,17 @@ class Node:
     def __init__(self, k: int):
         self.k: int = k
         self._p: Node = None
-        self.children = {Node.L: None, Node.R: None}
+        self._l = None
+        self._r = None
         self.lh = 0
         self.rh = 0
         self.ls = 0
         self.rs = 0
-        self._height_changed = False
+        self.height_changed = False
 
     @property
     def l(self) -> Node:
-        return self[Node.L]
+        return self._l
 
     @l.setter
     def l(self, node: Node):
@@ -27,7 +28,7 @@ class Node:
 
     @property
     def r(self) -> Node:
-        return self[Node.R]
+        return self._r
 
     @r.setter
     def r(self, node: Node):
@@ -65,18 +66,18 @@ class Node:
             return False
 
     def __getitem__(self, child_type: str) -> Node:
-        return self.children[child_type]
+        return self._l if child_type == Node.L else self._r
 
     def __setitem__(self, child_type: str, child: Node):
         assert child is None or child.p is None
         current_child = self[child_type]
         if current_child is not None:
             current_child._p = None
-        self.children[child_type] = child
+        if child_type == Node.L:
+            self._l = child
+        else:
+            self._r = child
         self._recalc_child_stats(child_type)
-        if self._height_changed:
-            self._p_height_changed()
-            self._height_changed = False
         if child is not None:
             child._p = self
 
@@ -91,34 +92,41 @@ class Node:
         p_str = self.p.k if self.p else 'null'
         return f"{self.k}({p_str})"
 
-    def recalc_stats(self):
-        self._height_changed = False
+    def recalc_height(self):
         for t in [Node.L, Node.R]:
-            self._recalc_child_stats(t)
-        if self._height_changed:
-            self._p_height_changed()
-            self._height_changed = False
+            self._recalc_height(t)
+        self.height_changed = False
 
-    def _p_height_changed(self):
-        if self.p is not None:
-            self.p._height_changed = True
+    def recalc_sum(self):
+        for t in [Node.L, Node.R]:
+            self._recalc_sum(t)
 
-    def _recalc_child_stats(self, t: str):
-        child = self[t]
-        new_height = 0 if child is None else \
-            max(child.lh, child.rh) + 1
+    def _recalc_child_stats(self, child_type: str):
+        self._recalc_height(child_type)
+        self._recalc_sum(child_type)
+
+    def _recalc_sum(self, child_type: str):
+        child = self[child_type]
         new_sum = 0 if child is None else \
             child.ls + child.rs + child.k
-        if t == Node.L:
+        if child_type == Node.L:
+            self.ls = new_sum
+        else:
+            self.rs = new_sum
+
+    def _recalc_height(self, child_type: str):
+        child = self[child_type]
+        new_height = 0 if child is None else \
+            (child.lh if child.lh > child.rh else child.rh) + 1
+        if child_type == Node.L:
             last_height = self.lh
             self.lh = new_height
-            self.ls = new_sum
         else:
             last_height = self.rh
             self.rh = new_height
-            self.rs = new_sum
         if last_height != new_height:
-            self._height_changed = True
+            if self.p is not None:
+                self.p.height_changed = True
 
 
 def small_rotation(is_left: bool, alpha: Node, beta: Node):
@@ -164,8 +172,9 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node):
 def repair_invariant(node: Node) -> Tuple[Node, bool]:
     if node is None:
         return node, False
-    if node._height_changed:
-        node.recalc_stats()
+    if node.height_changed:
+        node.recalc_height()
+    node.recalc_sum()
     if abs(node.lh - node.rh) <= 1:
         return node, False
 
@@ -318,7 +327,7 @@ class Tree:
 
     def _remove_node(self, node: Node):
         existed_child_types = [
-            t for t, n in node.children.items() if n is not None]
+            t for t in [Node.L, Node.r] if node[t] is not None]
         is_root = node.p is None
         node_type = None if is_root else node.p.get_child_type(node)
         if len(existed_child_types) == 0:
@@ -377,6 +386,13 @@ class Tree:
         else:
             self.root = node
 
+def sum_segment(t: Tree, l: int, r: int) -> int:
+    left_t, right_t = split_tree(t, l-1)
+    center_t, right_t = split_tree(right_t, r)
+    res = center_t.sum
+    left_t = merge_trees(left_t, center_t)
+    t = merge_trees(left_t, right_t)
+    return res, t
 
 def solve(commands):
     t = Tree()
@@ -390,12 +406,8 @@ def solve(commands):
         c, args = comm[0], list(map(int, comm[1:]))
         if c == 's':
             l, r = map(f, args)
-            left_t, right_t = split_tree(t, l-1)
-            center_t, right_t = split_tree(right_t, r)
-            res = center_t.sum
+            res, t = sum_segment(t, l, r)
             s = res % p
-            left_t = merge_trees(left_t, center_t)
-            t = merge_trees(left_t, right_t)
             yield str(res)
         else:
             i = f(args[0])
