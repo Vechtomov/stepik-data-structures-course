@@ -1,4 +1,3 @@
-from __future__ import annotations
 import sys
 from typing import Tuple, Union
 
@@ -9,7 +8,7 @@ class Node:
 
     def __init__(self, k: int):
         self.k: int = k
-        self._p: Node = None
+        self._p = None
         self._l = None
         self._r = None
         self.lh = 0
@@ -19,43 +18,43 @@ class Node:
         self.height_changed = False
 
     @property
-    def l(self) -> Node:
+    def l(self):
         return self._l
 
     @l.setter
-    def l(self, node: Node):
+    def l(self, node):
         self[Node.L] = node
 
     @property
-    def r(self) -> Node:
+    def r(self):
         return self._r
 
     @r.setter
-    def r(self, node: Node):
+    def r(self, node):
         self[Node.R] = node
 
     @property
-    def p(self) -> Node:
+    def p(self):
         return self._p
 
     @p.setter
-    def p(self, parent: Node):
+    def p(self, parent):
         current_parent = self.p
         if current_parent is not None:
             current_parent.remove_child(self)
         if parent is not None:
             parent.set_child(self)
 
-    def get_child_type(self, node: Node) -> str:
+    def get_child_type(self, node) -> str:
         assert node is not None
         return Node.L if node.k < self.k else Node.R
 
-    def set_child(self, child: Node):
+    def set_child(self, child):
         assert child is not None
         child_type = self.get_child_type(child)
         self[child_type] = child
 
-    def remove_child(self, child: Node) -> bool:
+    def remove_child(self, child) -> bool:
         if child is None:
             return
         child_type = self.get_child_type(child)
@@ -65,10 +64,10 @@ class Node:
         else:
             return False
 
-    def __getitem__(self, child_type: str) -> Node:
+    def __getitem__(self, child_type: str):
         return self._l if child_type == Node.L else self._r
 
-    def __setitem__(self, child_type: str, child: Node):
+    def __setitem__(self, child_type: str, child):
         assert child is None or child.p is None
         current_child = self[child_type]
         if current_child is not None:
@@ -129,7 +128,7 @@ class Node:
                 self.p.height_changed = True
 
 
-def small_rotation(is_left: bool, alpha: Node, beta: Node):
+def small_rotation(is_left: bool, alpha, beta):
     alpha_p = alpha.p
     alpha.p = None
     alpha.remove_child(beta)
@@ -145,7 +144,7 @@ def small_rotation(is_left: bool, alpha: Node, beta: Node):
     return beta
 
 
-def big_rotation(is_left: bool, alpha: Node, beta: Node):
+def big_rotation(is_left: bool, alpha, beta):
     alpha_p = alpha.p
     gamma = beta.r if is_left else beta.l
     b = gamma.r if is_left else gamma.l
@@ -169,7 +168,7 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node):
     return gamma
 
 
-def repair_invariant(node: Node) -> Tuple[Node, bool]:
+def repair_invariant(node) -> Tuple[Node, bool]:
     if node is None:
         return node, False
     if node.height_changed:
@@ -178,8 +177,8 @@ def repair_invariant(node: Node) -> Tuple[Node, bool]:
     if abs(node.lh - node.rh) <= 1:
         return node, False
 
-    alpha: Node = node
-    beta: Node = None
+    alpha = node
+    beta = None
     is_left = alpha.lh > alpha.rh
     beta = alpha.l if is_left else alpha.r
     if is_left:
@@ -195,7 +194,7 @@ def repair_invariant(node: Node) -> Tuple[Node, bool]:
     return root, True
 
 
-def merge_trees(t1: Tree, t2: Tree) -> Tree:
+def merge_trees(t1, t2):
     assert t1 is not None and t2 is not None
     if t1.root is None:
         return t2
@@ -227,7 +226,7 @@ def merge_trees(t1: Tree, t2: Tree) -> Tree:
         return t2
 
 
-def split_tree(t: Tree, k: int) -> Tuple[Tree, Tree]:
+def split_tree(t, k: int):
     if t.root is None:
         return Tree(), Tree()
     root = t.root
@@ -247,7 +246,7 @@ def split_tree(t: Tree, k: int) -> Tuple[Tree, Tree]:
 
 
 class Tree:
-    def __init__(self, root: Node = None) -> None:
+    def __init__(self, root = None) -> None:
         self.root = root
 
     @property
@@ -269,7 +268,7 @@ class Tree:
         else:
             self._add(self.root, node)
 
-    def _add(self, node: Node, new_node: Node):
+    def _add(self, node, new_node):
         child_type = node.get_child_type(new_node)
         child = node[child_type]
         if child is None:
@@ -281,29 +280,29 @@ class Tree:
     def find(self, k: int) -> bool:
         return self._find(self.root, k)
 
-    def _find(self, node: Node, k: int) -> bool:
+    def _find(self, node, k: int) -> bool:
         if node is None:
             return False
         if node.k == k:
             return True
         return self._find(node.l if k < node.k else node.r, k)
 
-    def max(self) -> Node:
+    def max(self):
         assert self.root is not None
         return self._find_max(self.root)
 
-    def min(self) -> Node:
+    def min(self):
         assert self.root is not None
         return self._find_min(self.root)
 
-    def _find_max(self, node: Node):
+    def _find_max(self, node):
         assert node is not None
         curr = node
         while curr.r is not None:
             curr = curr.r
         return curr
 
-    def _find_min(self, node: Node):
+    def _find_min(self, node):
         assert node is not None
         curr = node
         while curr.l is not None:
@@ -316,7 +315,7 @@ class Tree:
         k = v.k if isinstance(v, Node) else v
         self._remove(self.root, k)
 
-    def _remove(self, node: Node, k: int):
+    def _remove(self, node, k: int):
         if node.k == k:
             self._remove_node(node)
         else:
@@ -325,7 +324,7 @@ class Tree:
             if child_node is not None:
                 self._remove(child_node, k)
 
-    def _remove_node(self, node: Node):
+    def _remove_node(self, node):
         existed_child_types = [
             t for t in [Node.L, Node.r] if node[t] is not None]
         is_root = node.p is None
@@ -338,7 +337,7 @@ class Tree:
         else:
             self._remove_node_two_children(node, is_root, node_type)
 
-    def _remove_node_no_children(self, node: Node, is_root: bool, node_type: str):
+    def _remove_node_no_children(self, node, is_root: bool, node_type: str):
         if is_root:
             self.root = None
         else:
@@ -346,7 +345,7 @@ class Tree:
             node.p = None
             self._repair(parent)
 
-    def _remove_node_one_child(self, node: Node, child_type: str, is_root: bool, node_type: str):
+    def _remove_node_one_child(self, node, child_type: str, is_root: bool, node_type: str):
         child = node[child_type]
         child.p = None
         if is_root:
@@ -355,8 +354,8 @@ class Tree:
             node.p[node_type] = child
         self._repair(child)
 
-    def _remove_node_two_children(self, node: Node, is_root: bool, node_type: str):
-        max_left_child: Node = self._find_max(node.l)
+    def _remove_node_two_children(self, node, is_root: bool, node_type: str):
+        max_left_child = self._find_max(node.l)
         l = node.l
         r = node.r
         node.remove_child(l)
@@ -379,14 +378,14 @@ class Tree:
             node.p[node_type] = max_left_child
         self._repair(repair_node)
 
-    def _repair(self, node: Node):
+    def _repair(self, node):
         node, _ = repair_invariant(node)
         if node.p is not None:
             self._repair(node.p)
         else:
             self.root = node
 
-def sum_segment(t: Tree, l: int, r: int) -> int:
+def sum_segment(t, l: int, r: int) -> int:
     left_t, right_t = split_tree(t, l-1)
     center_t, right_t = split_tree(right_t, r)
     res = center_t.sum
@@ -394,7 +393,7 @@ def sum_segment(t: Tree, l: int, r: int) -> int:
     t = merge_trees(left_t, right_t)
     return res, t
 
-def sum_segment_no_split(t: Tree, l: int, r: int) -> int:
+def sum_segment_no_split(t, l: int, r: int) -> int:
     p = t.root
     while p is not None:
         if p.k > r:

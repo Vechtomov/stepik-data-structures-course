@@ -1,4 +1,4 @@
-from n4_tree import Tree, Node, merge_trees, split_tree, solve, sum_segment
+from n4_tree_no_annotations import Tree, Node, merge_trees, split_tree, solve, sum_segment, sum_segment_no_split
 from typing import List, Tuple, Union, Callable
 import random
 
@@ -245,7 +245,7 @@ def test_tree_sum_segment():
     def test(nodes, l, r, expected):
         t = build_tree(nodes)
         t_keys = in_order_keys(t)
-        s, tn = sum_segment(t, l, r)
+        s, tn = sum_segment_no_split(t, l, r)
         check_tree(tn)
         tn_keys = in_order_keys(tn)
         are_equal(expected, s)
@@ -275,6 +275,31 @@ def test_tree_sum_segment():
     test([1, 2, 3, 4], 1, 4, 10)
     test([3, 2, 4, 1, 5], 2, 4, 9)
 
+def test_tree_sum_segment_random(n=100):
+    for i in range(n):
+        arr = list(range(100))
+        random.shuffle(arr)
+        t = build_tree(arr)
+        t_keys = in_order_keys(t)
+        first = arr.copy()
+        second = arr.copy()
+        random.shuffle(first)
+        random.shuffle(second)
+        try:
+            for f, s in zip(first, second):
+                l, r = min(f, s), max(f, s)
+                sum_actual, t = sum_segment_no_split(t, l, r)
+                check_tree(t)
+                t_keys_new = in_order_keys(t)
+                are_equal(set(t_keys), set(t_keys_new))
+                sum_expected = sum([x for x in t_keys if l <= x <= r])
+                are_equal(sum_expected, sum_actual)
+        except AssertionError as e:
+            print(e)
+            print("l:", l, "r:", r)
+            print("Keys:", t_keys)
+            raise
+
 
 if __name__ == '__main__':
     test_tree_add()
@@ -282,7 +307,8 @@ if __name__ == '__main__':
     test_tree_random_add_remove(10)
     test_tree_merge()
     test_tree_split()
+    test_tree_sum_segment()
     test_tree_random_merge(10)
     test_tree_random_split(10)
-    test_tree_sum_segment()
+    test_tree_sum_segment_random(10)
     test_solution()
