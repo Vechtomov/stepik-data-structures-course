@@ -35,7 +35,7 @@ def check_tree(t: Tree):
         return 0 if node is None else max(node.lh, node.rh) + 1
 
     def c(node: Node):
-        return 0 if node is None else node.lc + node.rc + 1
+        return 0 if node is None else node.counts[Node.L] + node.counts[Node.R] + 1
 
     def check_node(node: Node):
         if node is None:
@@ -43,8 +43,8 @@ def check_tree(t: Tree):
         try:
             are_equal(h(node.l), node.lh)
             are_equal(h(node.r), node.rh)
-            are_equal(c(node.l), node.lc)
-            are_equal(c(node.r), node.rc)
+            are_equal(c(node.l), node.counts[Node.L])
+            are_equal(c(node.r), node.counts[Node.R])
             assert abs(node.lh - node.rh) <= 1, f"lh: {node.lh} rh: {node.rh}"
             check_node(node.l)
             check_node(node.r)
@@ -241,11 +241,11 @@ def test_tree_random_merge(n=100):
 
 
 if __name__ == '__main__':
-    # test_tree_add()
-    # test_tree_random_add_remove(10)
-    # test_tree_merge()
-    # test_tree_split()
-    # test_tree_random_merge(10)
-    # test_tree_random_split(10)
+    test_tree_add()
+    test_tree_random_add_remove(10)
+    test_tree_merge()
+    test_tree_split()
+    test_tree_random_merge(10)
+    test_tree_random_split(10)
     test_solution()
     test_permute_random(100)

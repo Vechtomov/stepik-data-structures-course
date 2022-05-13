@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 def perf_test(m):
-    l = 100000
+    l = 10000
     commands = []
     for i in range(m):
         beg = random.randint(0, l)
@@ -20,5 +20,5 @@ def perf_test(m):
 if __name__ == "__main__":
     random.seed(0)
     file = f'rope_{datetime.now().strftime("%Y%m%d_%H%M%S")}.prof'
-    cProfile.run('perf_test(100)', file)
+    cProfile.run('perf_test(1000)', file)
     os.system(f'snakeviz {file}')

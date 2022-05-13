@@ -4,23 +4,21 @@ from typing import Tuple
 
 
 class Node:
-    L: str = 'l'
-    R: str = 'r'
+    L: str = 0
+    R: str = 1
 
     def __init__(self, s: str):
         self.s: str = s
-        self._p: Node = None
-        self._l = None
-        self._r = None
+        self.p: Node = None
         self.lh = 0
         self.rh = 0
-        self.lc = 0
-        self.rc = 0
+        self.counts = [0, 0]
         self.height_changed = False
+        self.children = [None, None]
 
     @property
     def l(self) -> Node:
-        return self._l
+        return self.children[Node.L]
 
     @l.setter
     def l(self, node: Node):
@@ -28,23 +26,15 @@ class Node:
 
     @property
     def r(self) -> Node:
-        return self._r
+        return self.children[Node.R]
 
     @r.setter
     def r(self, node: Node):
         self[Node.R] = node
 
-    @property
-    def p(self) -> Node:
-        return self._p
-
-    @p.setter
-    def p(self, parent: Node):
-        current_parent = self.p
-        if current_parent is not None:
-            current_parent.remove_child(self)
-        if parent is not None:
-            parent.set_child(self)
+    def detach(self):
+        if self.p is not None:
+            self.p.remove_child(self)
 
     def get_child_type(self, node: Node) -> str:
         assert node is not None
@@ -54,10 +44,6 @@ class Node:
             return Node.R
         else:
             return None
-
-    def set_child(self, child: Node, child_type: str):
-        assert child is not None
-        self[child_type] = child
 
     def remove_child(self, child: Node) -> bool:
         if child is None:
@@ -70,20 +56,17 @@ class Node:
             return False
 
     def __getitem__(self, child_type: str) -> Node:
-        return self._l if child_type == Node.L else self._r
+        return self.children[child_type]
 
     def __setitem__(self, child_type: str, child: Node):
         assert child is None or child.p is None
         current_child = self[child_type]
         if current_child is not None:
-            current_child._p = None
-        if child_type == Node.L:
-            self._l = child
-        else:
-            self._r = child
+            current_child.p = None
+        self.children[child_type] = child
         self._recalc_child_stats(child_type)
         if child is not None:
-            child._p = self
+            child.p = self
 
     def __delitem__(self, child_type):
         self[child_type] = None
@@ -93,13 +76,13 @@ class Node:
         return f"{self.s}({p_str})"
 
     def recalc_height(self):
-        for t in [Node.L, Node.R]:
-            self._recalc_height(t)
+        self._recalc_height(Node.L)
+        self._recalc_height(Node.R)
         self.height_changed = False
 
     def recalc_count(self):
-        for t in [Node.L, Node.R]:
-            self._recalc_count(t)
+        self._recalc_count(Node.L)
+        self._recalc_count(Node.R)
 
     def _recalc_child_stats(self, child_type: str):
         self._recalc_height(child_type)
@@ -107,12 +90,8 @@ class Node:
 
     def _recalc_count(self, child_type: str):
         child = self[child_type]
-        new_count = 0 if child is None else \
-            child.lc + child.rc + 1
-        if child_type == Node.L:
-            self.lc = new_count
-        else:
-            self.rc = new_count
+        self.counts[child_type] = 0 if child is None else child.counts[Node.L] + \
+            child.counts[Node.R] + 1
 
     def _recalc_height(self, child_type: str):
         child = self[child_type]
@@ -133,7 +112,7 @@ def small_rotation(is_left: bool, alpha: Node, beta: Node):
     alpha_p = alpha.p
     if alpha_p is not None:
         alpha_child_type = alpha_p.get_child_type(alpha)
-    alpha.p = None
+        alpha.p = None
     alpha.remove_child(beta)
     b = beta.r if is_left else beta.l
     beta.remove_child(b)
@@ -144,7 +123,9 @@ def small_rotation(is_left: bool, alpha: Node, beta: Node):
         alpha.r = b
         beta.l = alpha
     if alpha_p is not None:
-        alpha_p[alpha_child_type] = beta
+        alpha_p.children[alpha_child_type] = beta
+        beta.p = alpha_p
+        alpha_p.height_changed = True
     return beta
 
 
@@ -152,12 +133,12 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node):
     alpha_p = alpha.p
     if alpha_p is not None:
         alpha_child_type = alpha_p.get_child_type(alpha)
+        alpha.p = None
     gamma = beta.r if is_left else beta.l
     b = gamma.r if is_left else gamma.l
     c = gamma.l if is_left else gamma.r
-    alpha.p = None
-    beta.p = None
-    gamma.p = None
+    beta.detach()
+    gamma.detach()
     gamma.remove_child(b)
     gamma.remove_child(c)
     if is_left:
@@ -171,7 +152,9 @@ def big_rotation(is_left: bool, alpha: Node, beta: Node):
         gamma.l = alpha
         gamma.r = beta
     if alpha_p is not None:
-        alpha_p[alpha_child_type] = gamma
+        alpha_p.children[alpha_child_type] = gamma
+        gamma.p = alpha_p
+        alpha_p.height_changed = True
     return gamma
 
 
@@ -238,7 +221,7 @@ def split_tree(t: Tree, i: int) -> Tuple[Tree, Tree]:
         return Tree(), Tree()
     root = t.root
     l_node, r_node = root.l, root.r
-    left_count = root.lc + 1
+    left_count = root.counts[Node.L] + 1
     root.l = None
     root.r = None
     l_tree, r_tree = Tree(l_node), Tree(r_node)
@@ -270,7 +253,7 @@ class Tree:
     def count(self) -> int:
         if self.root is None:
             return 0
-        return self.root.lc + self.root.rc + 1
+        return self.root.counts[Node.L] + self.root.counts[Node.R] + 1
 
     def add_max(self, node: Node):
         assert node is not None
@@ -317,7 +300,7 @@ class Tree:
 
     def _remove_node(self, node: Node):
         existed_child_types = [
-            t for t in [Node.L, Node.r] if node[t] is not None]
+            t for t in [Node.L, Node.R] if node[t] is not None]
         is_root = node.p is None
         node_type = None if is_root else node.p.get_child_type(node)
         if len(existed_child_types) == 0:
@@ -333,12 +316,12 @@ class Tree:
             self.root = None
         else:
             parent = node.p
-            node.p = None
+            node.detach()
             self._repair(parent)
 
     def _remove_node_one_child(self, node: Node, child_type: str, is_root: bool, node_type: str):
         child = node[child_type]
-        child.p = None
+        child.detach()
         if is_root:
             self.root = child
         else:
@@ -360,7 +343,7 @@ class Tree:
             ml = max_left_child.l
             max_left_child.remove_child(ml)
             repair_node.r = ml
-            max_left_child.p = None
+            max_left_child.detach()
             max_left_child.l = l
             max_left_child.r = r
         if is_root:
@@ -376,11 +359,13 @@ class Tree:
         else:
             self.root = node
 
+
 def build_tree(s: str):
     t = Tree()
     for c in s:
         t.add_max(Node(c))
     return t
+
 
 def permute(t: Tree, beg: int, end: int, pos: int) -> Tree:
     left_t, right_t = split_tree(t, beg + 1)
@@ -391,6 +376,7 @@ def permute(t: Tree, beg: int, end: int, pos: int) -> Tree:
     t = merge_trees(t, right_t)
     return t
 
+
 def in_order(node: Node):
     if node is None:
         return
@@ -400,14 +386,17 @@ def in_order(node: Node):
     for n in in_order(node.r):
         yield n
 
+
 def get_string(t: Tree) -> str:
     return ''.join([n.s for n in in_order(t.root)])
+
 
 def solve(s, commands):
     t = build_tree(s)
     for beg, end, pos in commands:
         t = permute(t, beg, end, pos)
     return get_string(t)
+
 
 def main():
     reader = (s for s in sys.stdin)
